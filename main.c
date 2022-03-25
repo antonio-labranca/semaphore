@@ -3,10 +3,12 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
+#include <semaphore.h> /* Semaphore */
 
 #define MAX 1000000  // numero di incrementi
 
 int count=0; // contatore globale inizializzato a 0
+sem_t mutex; // semaforo condiviso
 
 void * codice_thread(void * a) {
     pthread_t tid;
@@ -20,7 +22,11 @@ void * codice_thread(void * a) {
     
     // il thread incrementa il contatore globale MAX volte
     // questo può INTERFERIRE e alcuni incrementi vengono persi!
-    for (i=0;i<MAX;i++) count++;
+    for (i=0;i<MAX;i++){
+        sem_wait(&mutex);
+        count++;
+        sem_post(&mutex);
+    } 
 
     pthread_exit(NULL);
 }
@@ -28,6 +34,8 @@ void * codice_thread(void * a) {
 int main() {
     pthread_t tid[2];
     int i,err;
+
+    sem_init(&mutex, 0, 1);
 
     // crea i thread (ritorna 0 quando ha successo, vedere il man!)
     for (i=0;i<2;i++) {
